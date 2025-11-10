@@ -16,21 +16,36 @@ const ProjectTracker = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(true);
+  const SUPABASE_URL = 'https://rsczizrlqzmjkspwpoax.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzY3ppenJscXptamtzcHdwb2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTIzMDEsImV4cCI6MjA3ODM2ODMwMX0.Ek0zo5xUUMHrzJuULBZsCmehJai-SE_v6bsmnsEHKF8';
 
   // Load data on mount
   useEffect(() => {
     loadData();
   }, []);
-
+  
   const loadData = async () => {
     try {
-      const entitiesData = await window.storage.get('entities');
-      const transactionsData = await window.storage.get('transactions');
-      
-      setEntities(entitiesData ? JSON.parse(entitiesData.value) : []);
-      setTransactions(transactionsData ? JSON.parse(transactionsData.value) : []);
+      const resEntities = await fetch(`${SUPABASE_URL}/rest/v1/entities`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const entitiesData = await resEntities.json();
+
+      const resTransactions = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const transactionsData = await resTransactions.json();
+  
+      setEntities(entitiesData || []);
+      setTransactions(transactionsData || []);
     } catch (error) {
-      console.log('No existing data, starting fresh');
+      console.log('Error loading data:', error);
       setEntities([]);
       setTransactions([]);
     }
@@ -38,8 +53,33 @@ const ProjectTracker = () => {
   };
 
   const saveData = async (newEntities, newTransactions) => {
-    await window.storage.set('entities', JSON.stringify(newEntities));
-    await window.storage.set('transactions', JSON.stringify(newTransactions));
+    try {
+      for (const entity of newEntities) {
+        await fetch(`${SUPABASE_URL}/rest/v1/entities`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(entity)
+        });
+      }
+
+      for (const transaction of newTransactions) {
+        await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(transaction)
+        });
+      }
+    } catch (error) {
+      console.log('Error saving data:', error);
+    }
   };
 
   const generateEntityId = (type) => {
