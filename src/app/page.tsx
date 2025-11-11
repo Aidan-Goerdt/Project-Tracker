@@ -17,7 +17,7 @@ const ProjectTracker = () => {
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(true);
   const SUPABASE_URL = 'https://rsczizrlqzmjkspwpoax.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzY3ppenJscXptamtzcHdwb2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTIzMDEsImV4cCI6MjA3ODM2ODMwMX0.Ek0zo5xUUMHrzJuULBZsCmehJai-SE_v6bsmnsEHKF8';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzY3ppenJscXptamtzcHdwb2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTIzMDEsImV4cCI6MjA3ODM2ODMwMX0.Ek0zo5xUUMH[...]';
 
   // Load data on mount
   useEffect(() => {
@@ -147,7 +147,9 @@ const ProjectTracker = () => {
     await saveData(entities, updatedTransactions);
     
     // Update linked entity timestamp
-    await updateEntityTimestamp(transactionData.linkedEntityId);
+    if (transactionData.linkedEntityId) {
+      await updateEntityTimestamp(transactionData.linkedEntityId);
+    }
     
     resetForm();
     setView('dashboard');
@@ -275,7 +277,9 @@ const ProjectTracker = () => {
             entities={entities}
             onSubmitEntity={handleSubmitEntity}
             onSubmitTransaction={handleSubmitTransaction}
-            onCancel={resetForm}
+            onCancel={() => {
+              resetForm();
+            }}
           />
         )}
         
@@ -296,6 +300,65 @@ const ProjectTracker = () => {
 };
 
 const DashboardView = ({ recentItems, entities, transactions, getEntityIcon }) => {
+  const renderEntityDetails = (item) => {
+    switch (item.entityType) {
+      case 'Material':
+        return (
+          <>
+            <div className="text-sm text-gray-700 font-medium">{item.description}</div>
+            <div className="text-xs text-gray-500">
+              Qty: {item.quantity || '—'} • Vendor: {item.vendor || '—'}
+            </div>
+            <div className="text-xs text-gray-500">Project: {item.project || '—'} {item.taskGroup ? `• ${item.taskGroup}` : ''}</div>
+          </>
+        );
+      case 'Submittal':
+        return (
+          <>
+            <div className="text-sm text-gray-700 font-medium">{item.title || item.submittalNumber}</div>
+            <div className="text-xs text-gray-500">Submittal #: {item.submittalNumber || '—'} • Paragraph: {item.paragraphNumber || '—'}</div>
+            <div className="text-xs text-gray-500">{(item.relatedMaterials && item.relatedMaterials.length) ? `${item.relatedMaterials.length} related material(s)` : ''}</div>
+          </>
+        );
+      case 'Vendor':
+        return (
+          <>
+            <div className="text-sm text-gray-700 font-medium">{item.name}</div>
+            <div className="text-xs text-gray-500">Contact: {item.contactName || '—'} • {item.phoneNumber || '—'}</div>
+            <div className="text-xs text-gray-500">Email: {item.email || '—'} • PO#: {item.poNumber || '—'}</div>
+          </>
+        );
+      case 'RFI':
+        return (
+          <>
+            <div className="text-sm text-gray-700 font-medium">{item.title || item.rfiNumber}</div>
+            <div className="text-xs text-gray-500">RFI #: {item.rfiNumber || '—'}</div>
+            <div className="text-xs text-gray-500">{item.description || ''}</div>
+          </>
+        );
+      case 'Task':
+        return (
+          <>
+            <div className="text-sm text-gray-700 font-medium">{item.taskTitle}</div>
+            <div className="text-xs text-gray-500">Assigned: {item.assignedFrom || '—'} → {item.assignedTo || '—'}</div>
+            <div className="text-xs text-gray-500">{item.description || ''}</div>
+          </>
+        );
+      default:
+        return <div className="text-sm text-gray-700">{item.description || item.title || item.name || item.taskTitle}</div>;
+    }
+  };
+
+  const renderTransactionDetails = (item) => {
+    return (
+      <>
+        <div className="text-sm text-gray-700">{item.statusUpdate}</div>
+        {item.notes && <div className="text-xs text-gray-500">{item.notes}</div>}
+        <div className="text-xs text-gray-400">Linked to: {item.linkedEntityId || '—'}</div>
+      </>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -336,17 +399,13 @@ const DashboardView = ({ recentItems, entities, transactions, getEntityIcon }) =
                         {new Date(item.dateCreated).toLocaleDateString()}
                       </span>
                     </div>
+
                     <div className="text-sm text-gray-900">
                       {item.type === 'entity' 
-                        ? (item.description || item.title || item.name || item.taskTitle)
-                        : `Update: ${item.statusUpdate}`
+                        ? renderEntityDetails(item)
+                        : renderTransactionDetails(item)
                       }
                     </div>
-                    {item.type === 'transaction' && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Linked to: {item.linkedEntityId}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -378,16 +437,34 @@ const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTra
   const [entityFormData, setEntityFormData] = useState({});
   const [transactionFormData, setTransactionFormData] = useState({});
 
+  // use functional updates to avoid stale closures
   const handleChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      return next;
+    });
+
+    // keep transaction form entityType in sync when the main entityType is changed
+    if (field === 'entityType') {
+      setTransactionFormData(prev => ({ ...prev, entityType: value }));
+    }
+
+    // if switching entry type, clear the other form data so stale values won't leak
+    if (field === 'entryType') {
+      if (value === 'Entity') {
+        setTransactionFormData({});
+      } else if (value === 'Transaction') {
+        setEntityFormData({});
+      }
+    }
   };
 
   const handleEntityChange = (field, value) => {
-    setEntityFormData({ ...entityFormData, [field]: value });
+    setEntityFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleTransactionChange = (field, value) => {
-    setTransactionFormData({ ...transactionFormData, [field]: value });
+    setTransactionFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -401,6 +478,11 @@ const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTra
       }
       onSubmitEntity(dataToSubmit);
     } else {
+      // basic validation: ensure linkedEntityId present for transactions
+      if (!transactionFormData.linkedEntityId) {
+        alert('Please select an entity to link for this transaction.');
+        return;
+      }
       onSubmitTransaction(transactionFormData);
     }
   };
@@ -551,7 +633,11 @@ const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTra
             </button>
             <button
               type="button"
-              onClick={onCancel}
+              onClick={() => {
+                setEntityFormData({});
+                setTransactionFormData({});
+                onCancel();
+              }}
               className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 font-medium"
             >
               Cancel
@@ -640,6 +726,11 @@ const MaterialForm = ({ data, onChange, formData, setFormData, getTaskGroups, ge
 
 const SubmittalForm = ({ data, onChange, getMaterials }) => {
   const [selectedMaterials, setSelectedMaterials] = useState(data.relatedMaterials || []);
+
+  useEffect(() => {
+    // keep local selectedMaterials in sync when data changes externally
+    setSelectedMaterials(data.relatedMaterials || []);
+  }, [data.relatedMaterials]);
 
   const toggleMaterial = (materialId) => {
     const newSelection = selectedMaterials.includes(materialId)
@@ -922,8 +1013,10 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
         <select
           value={data.linkedEntityId || ''}
           onChange={(e) => {
-            const selectedEntity = entities.find(ent => ent.id === e.target.value);
-            onChange('linkedEntityId', e.target.value);
+            const val = e.target.value;
+            const selectedEntity = entities.find(ent => ent.id === val);
+            // perform a single update call for clarity and to avoid stale state updates
+            onChange('linkedEntityId', val);
             onChange('entityType', entityType);
             onChange('entityDisplay', selectedEntity ? getEntityDisplay(selectedEntity) : '');
           }}
@@ -1032,6 +1125,53 @@ const EntityCard = ({ entity, transactions, getEntityIcon }) => {
     return 'Untitled';
   };
 
+  const renderDetails = () => {
+    switch (entity.entityType) {
+      case 'Material':
+        return (
+          <>
+            <div className="text-sm font-medium text-gray-900">{entity.description}</div>
+            <div className="text-xs text-gray-500">Quantity: {entity.quantity || '—'} • Vendor: {entity.vendor || '—'}</div>
+            <div className="text-xs text-gray-500">Project: {entity.project || '—'} {entity.taskGroup ? `• ${entity.taskGroup}` : ''}</div>
+          </>
+        );
+      case 'Submittal':
+        return (
+          <>
+            <div className="text-sm font-medium text-gray-900">{entity.title || entity.submittalNumber}</div>
+            <div className="text-xs text-gray-500">Submittal #: {entity.submittalNumber || '—'} • Paragraph: {entity.paragraphNumber || '—'}</div>
+            <div className="text-xs text-gray-500">{(entity.relatedMaterials && entity.relatedMaterials.length) ? `${entity.relatedMaterials.length} related material(s)` : ''}</div>
+          </>
+        );
+      case 'Vendor':
+        return (
+          <>
+            <div className="text-sm font-medium text-gray-900">{entity.name}</div>
+            <div className="text-xs text-gray-500">Contact: {entity.contactName || '—'} • {entity.phoneNumber || '—'}</div>
+            <div className="text-xs text-gray-500">Email: {entity.email || '—'} • PO#: {entity.poNumber || '—'}</div>
+          </>
+        );
+      case 'RFI':
+        return (
+          <>
+            <div className="text-sm font-medium text-gray-900">{entity.title || entity.rfiNumber}</div>
+            <div className="text-xs text-gray-500">RFI #: {entity.rfiNumber || '—'}</div>
+            <div className="text-xs text-gray-500">{entity.description || ''}</div>
+          </>
+        );
+      case 'Task':
+        return (
+          <>
+            <div className="text-sm font-medium text-gray-900">{entity.taskTitle}</div>
+            <div className="text-xs text-gray-500">Assigned: {entity.assignedFrom || '—'} → {entity.assignedTo || '—'}</div>
+            <div className="text-xs text-gray-500">{entity.description || ''}</div>
+          </>
+        );
+      default:
+        return <div className="text-sm font-medium text-gray-900">{getEntityDisplay()}</div>;
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="flex items-start gap-3">
@@ -1047,12 +1187,12 @@ const EntityCard = ({ entity, transactions, getEntityIcon }) => {
               {entity.entityType}
             </span>
           </div>
-          <div className="text-sm font-medium text-gray-900 mb-1">
-            {getEntityDisplay()}
+          <div className="mb-1">
+            {renderDetails()}
           </div>
-          <div className="text-xs text-gray-500 space-x-3">
-            <span>Created: {new Date(entity.dateCreated).toLocaleDateString()}</span>
-            <span>Updated: {new Date(entity.lastUpdated).toLocaleDateString()}</span>
+          <div className="text-xs text-gray-500 space-x-3 mt-2">
+            <span>Created: {entity.dateCreated ? new Date(entity.dateCreated).toLocaleDateString() : '—'}</span>
+            <span>Updated: {entity.lastUpdated ? new Date(entity.lastUpdated).toLocaleDateString() : '—'}</span>
           </div>
 
           {transactions.length > 0 && (
