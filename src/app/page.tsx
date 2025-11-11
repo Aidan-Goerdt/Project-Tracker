@@ -139,7 +139,8 @@ const ProjectTracker = () => {
       id: generateTransactionId(),
       dateCreated: new Date().toISOString(),
       date: formData.date,
-      ...transactionData
+      linkedEntityId: transactionData.linkedEntityId,
+      statusUpdate: transactionData.statusUpdate
     };
 
     const updatedTransactions = [...transactions, newTransaction];
@@ -376,7 +377,10 @@ const StatCard = ({ title, count, color }) => {
 
 const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTransaction, onCancel }) => {
   const [entityFormData, setEntityFormData] = useState({});
-  const [transactionFormData, setTransactionFormData] = useState({});
+  const [transactionFormData, setTransactionFormData] = useState({
+    linkedEntityId: '',
+    statusUpdate: ''
+  });
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
