@@ -952,6 +952,17 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
     return entity.id;
   };
 
+  const handleEntitySelect = (e) => {
+    const selectedId = e.target.value;
+    const selectedEntity = entities.find(ent => ent.id === selectedId);
+    
+    // Update both fields in one batch
+    onChange('linkedEntityId', selectedId);
+    if (selectedEntity) {
+      onChange('entityDisplay', getEntityDisplay(selectedEntity));
+    }
+  };
+
   return (
     <>
       <div>
@@ -960,17 +971,12 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
         </label>
         <select
           value={data.linkedEntityId || ''}
-          onChange={(e) => {
-            const selectedId = e.target.value;
-            const selectedEntity = getEntitiesByType(entityType).find(ent => ent.id === selectedId);
-            onChange('linkedEntityId', selectedId);
-            onChange('entityDisplay', selectedEntity ? getEntityDisplay(selectedEntity) : '');
-          }}
+          onChange={handleEntitySelect}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
           <option value="">Select...</option>
-          {getEntitiesByType(entityType).map(entity => (
+          {entities.map(entity => (
             <option key={entity.id} value={entity.id}>
               {entity.id} - {getEntityDisplay(entity)}
             </option>
