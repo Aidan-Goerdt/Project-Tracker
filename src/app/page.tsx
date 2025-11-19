@@ -139,8 +139,7 @@ const ProjectTracker = () => {
       id: generateTransactionId(),
       dateCreated: new Date().toISOString(),
       date: formData.date,
-      linkedEntityId: transactionData.linkedEntityId,
-      statusUpdate: transactionData.statusUpdate
+      ...transactionData
     };
 
     const updatedTransactions = [...transactions, newTransaction];
@@ -377,10 +376,7 @@ const StatCard = ({ title, count, color }) => {
 
 const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTransaction, onCancel }) => {
   const [entityFormData, setEntityFormData] = useState({});
-  const [transactionFormData, setTransactionFormData] = useState({
-    linkedEntityId: '',
-    statusUpdate: ''
-  });
+  const [transactionFormData, setTransactionFormData] = useState({});
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -926,16 +922,16 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
         <select
           value={data.linkedEntityId || ''}
           onChange={(e) => {
-            const selectedId = e.target.value;
-            const selectedEntity = getEntitiesByType(entityType).find(ent => ent.id === selectedId);
-            onChange('linkedEntityId', selectedId);
+            const selectedEntity = entities.find(ent => ent.id === e.target.value);
+            onChange('linkedEntityId', e.target.value);
+            onChange('entityType', entityType);
             onChange('entityDisplay', selectedEntity ? getEntityDisplay(selectedEntity) : '');
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
           <option value="">Select...</option>
-          {getEntitiesByType(entityType).map(entity => (
+          {entities.map(entity => (
             <option key={entity.id} value={entity.id}>
               {entity.id} - {getEntityDisplay(entity)}
             </option>
