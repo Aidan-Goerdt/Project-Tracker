@@ -135,27 +135,24 @@ const ProjectTracker = () => {
   };
 
   const handleSubmitTransaction = async (transactionData) => {
-      const newTransaction = {
-        id: generateTransactionId(),
-        dateCreated: new Date().toISOString(),
-        date: formData.date,
-        entityType: formData.entityType,
-        linkedEntityId: transactionData.linkedEntityId,
-        statusUpdate: transactionData.statusUpdate,
-        notes: transactionData.notes || '',
-        entityDisplay: transactionData.entityDisplay || ''
-      };
+    const newTransaction = {
+      id: generateTransactionId(),
+      dateCreated: new Date().toISOString(),
+      date: formData.date,
+      linkedEntityId: transactionData.linkedEntityId,
+      statusUpdate: transactionData.statusUpdate
+    };
 
-      const updatedTransactions = [...transactions, newTransaction];
-      setTransactions(updatedTransactions);
-      await saveData(entities, updatedTransactions);
+    const updatedTransactions = [...transactions, newTransaction];
+    setTransactions(updatedTransactions);
+    await saveData(entities, updatedTransactions);
     
-      // Update linked entity timestamp
-      await updateEntityTimestamp(transactionData.linkedEntityId);
+    // Update linked entity timestamp
+    await updateEntityTimestamp(transactionData.linkedEntityId);
     
-      resetForm();
-      setView('dashboard');
-   };
+    resetForm();
+    setView('dashboard');
+  };
 
   const resetForm = () => {
     setFormData({
@@ -381,11 +378,9 @@ const StatCard = ({ title, count, color }) => {
 const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTransaction, onCancel }) => {
   const [entityFormData, setEntityFormData] = useState({});
   const [transactionFormData, setTransactionFormData] = useState({
-      linkedEntityId: '',
-      statusUpdate: '',
-      notes: '',
-      entityDisplay: ''
-    });
+    linkedEntityId: '',
+    statusUpdate: ''
+  });
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
