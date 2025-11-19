@@ -52,35 +52,67 @@ const ProjectTracker = () => {
     setLoading(false);
   };
 
-  const saveData = async (newEntities, newTransactions) => {
-    try {
-      for (const entity of newEntities) {
-        await fetch(`${SUPABASE_URL}/rest/v1/entities`, {
+  const saveEntity = async (entity) => {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/entities`, {
           method: 'POST',
           headers: {
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
           },
           body: JSON.stringify(entity)
         });
+        
+        if (!response.ok) {
+          console.error('Error saving entity:', await response.text());
+        }
+        return response.ok;
+      } catch (error) {
+        console.error('Error saving entity:', error);
+        return false;
       }
+    };
 
-      for (const transaction of newTransactions) {
-        await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+    const saveTransaction = async (transaction) => {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
           method: 'POST',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(transaction)
+        });
+        
+        if (!response.ok) {
+          console.error('Error saving transaction:', await response.text());
+        }
+        return response.ok;
+      } catch (error) {
+        console.error('Error saving transaction:', error);
+        return false;
+      }
+    };
+
+    const updateEntityTimestamp = async (entityId) => {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/entities?id=eq.${entityId}`, {
+          method: 'PATCH',
           headers: {
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(transaction)
+          body: JSON.stringify({ lastUpdated: new Date().toISOString() })
         });
+      } catch (error) {
+        console.error('Error updating entity timestamp:', error);
       }
-    } catch (error) {
-      console.log('Error saving data:', error);
-    }
-  };
+    };
 
   const generateEntityId = (type) => {
     const prefix = {
@@ -109,53 +141,51 @@ const ProjectTracker = () => {
     return `TRN-${String(nextNum).padStart(4, '0')}`;
   };
 
-  const updateEntityTimestamp = async (entityId) => {
-    const updatedEntities = entities.map(e => 
-      e.id === entityId ? { ...e, lastUpdated: new Date().toISOString() } : e
-    );
-    setEntities(updatedEntities);
-    await saveData(updatedEntities, transactions);
-  };
-
   const handleSubmitEntity = async (entityData) => {
-    const newEntity = {
-      id: generateEntityId(formData.entityType),
-      dateCreated: new Date().toISOString(),
-      lastUpdated: new Date().toISOString(),
-      entityType: formData.entityType,
-      ...entityData
-    };
+      const newEntity = {
+        id: generateEntityId(formData.entityType),
+        dateCreated: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+        entityType: formData.entityType,
+        ...entityData
+      };
 
-    const updatedEntities = [...entities, newEntity];
-    setEntities(updatedEntities);
-    await saveData(updatedEntities, transactions);
-    
-    resetForm();
-    setView('dashboard');
+      const success = await saveEntity(newEntity);
+      
+      if (success) {
+        const updatedEntities = [...entities, newEntity];
+        setEntities(updatedEntities);
+        resetForm();
+        setView('dashboard');
+      } else {
+        alert('Error saving entity. Please try again.');
+      }
   };
 
   const handleSubmitTransaction = async (transactionData) => {
-    const newTransaction = {
-      id: generateTransactionId(),
-      dateCreated: new Date().toISOString(),
-      date: formData.date,
-      entityType: formData.entityType,
-      linkedEntityId: transactionData.linkedEntityId,
-      statusUpdate: transactionData.statusUpdate,
-      notes: transactionData.notes || '',
-      entityDisplay: transactionData.entityDisplay || ''
-    };
+      const newTransaction = {
+        id: generateTransactionId(),
+        dateCreated: new Date().toISOString(),
+        date: formData.date,
+        entityType: formData.entityType,
+        linkedEntityId: transactionData.linkedEntityId,
+        statusUpdate: transactionData.statusUpdate,
+        notes: transactionData.notes || '',
+        entityDisplay: transactionData.entityDisplay || ''
+      };
 
-    const updatedTransactions = [...transactions, newTransaction];
-    setTransactions(updatedTransactions);
-    await saveData(entities, updatedTransactions);
-    
-    // Update linked entity timestamp
-    await updateEntityTimestamp(transactionData.linkedEntityId);
-    
-    resetForm();
-    setView('dashboard');
-  };
+      const success = await saveTransaction(newTransaction);
+      
+      if (success) {
+        const updatedTransactions = [...transactions, newTransaction];
+        setTransactions(updatedTransactions);
+        await updateEntityTimestamp(transactionData.linkedEntityId);
+        resetForm();
+        setView('dashboard');
+      } else {
+        alert('Error saving transaction. Please try again.');
+      }
+    };
 
   const resetForm = () => {
     setFormData({
