@@ -426,7 +426,7 @@ const FormView = ({ formData, setFormData, entities, onSubmitEntity, onSubmitTra
   };
 
   const handleTransactionChange = (field, value) => {
-    setTransactionFormData({ ...transactionFormData, [field]: value });
+    setTransactionFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -956,12 +956,17 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
     const selectedId = e.target.value;
     const selectedEntity = entities.find(ent => ent.id === selectedId);
     
-    // Update both fields in one batch
+    console.log('Selected:', selectedId, selectedEntity); // Debug line
+    
     onChange('linkedEntityId', selectedId);
-    if (selectedEntity) {
-      onChange('entityDisplay', getEntityDisplay(selectedEntity));
-    }
+    setTimeout(() => {
+      if (selectedEntity) {
+        onChange('entityDisplay', getEntityDisplay(selectedEntity));
+      }
+    }, 0);
   };
+
+  console.log('TransactionForm data:', data); // Debug line
 
   return (
     <>
@@ -982,6 +987,11 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
             </option>
           ))}
         </select>
+        {data.linkedEntityId && (
+          <p className="text-xs text-green-600 mt-1">
+            Selected: {data.linkedEntityId}
+          </p>
+        )}
       </div>
 
       <div>
