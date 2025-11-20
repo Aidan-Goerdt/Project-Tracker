@@ -956,17 +956,11 @@ const TransactionForm = ({ data, onChange, entityType, getEntitiesByType }) => {
     const selectedId = e.target.value;
     const selectedEntity = entities.find(ent => ent.id === selectedId);
     
-    console.log('Selected:', selectedId, selectedEntity); // Debug line
-    
     onChange('linkedEntityId', selectedId);
-    setTimeout(() => {
-      if (selectedEntity) {
-        onChange('entityDisplay', getEntityDisplay(selectedEntity));
-      }
-    }, 0);
+    if (selectedEntity) {
+      onChange('entityDisplay', getEntityDisplay(selectedEntity));
+    }
   };
-
-  console.log('TransactionForm data:', data); // Debug line
 
   return (
     <>
