@@ -203,7 +203,7 @@ const ProjectTracker = () => {
       ...transactions.map(t => ({ ...t, type: 'transaction' }))
     ].sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
     
-    return allItems.slice(0, 10);
+    return allItems.slice(0, 20);
   };
 
   const getFilteredEntities = () => {
@@ -404,6 +404,235 @@ const StatCard = ({ title, count, color }) => {
     <div className="bg-white rounded-lg shadow p-4">
       <div className="text-sm text-gray-600 mb-1">{title}</div>
       <div className={`text-2xl font-bold ${colors[color]}`}>{count}</div>
+    </div>
+  );
+};
+
+const ItemDetailModal = ({ item, onClose, getEntityIcon, transactions, entities }) => {
+  const relatedTransactions = item.type === 'entity' 
+    ? transactions.filter(t => t.linkedEntityId === item.id)
+    : [];
+
+  const linkedEntity = item.type === 'transaction'
+    ? entities.find(e => e.id === item.linkedEntityId)
+    : null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded">
+                {item.type === 'entity' 
+                  ? getEntityIcon(item.entityType)
+                  : <FileText className="w-5 h-5 text-blue-600" />
+                }
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">{item.id}</h2>
+                <p className="text-sm text-gray-500">
+                  {item.type === 'entity' ? item.entityType : 'Transaction'}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-600">Created:</span>
+                <p className="text-gray-900">{new Date(item.dateCreated).toLocaleString()}</p>
+              </div>
+              {item.lastUpdated && (
+                <div>
+                  <span className="font-medium text-gray-600">Last Updated:</span>
+                  <p className="text-gray-900">{new Date(item.lastUpdated).toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Entity Details */}
+            {item.type === 'entity' && (
+              <>
+                {item.description && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Description:</span>
+                    <p className="text-gray-900">{item.description}</p>
+                  </div>
+                )}
+                {item.title && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Title:</span>
+                    <p className="text-gray-900">{item.title}</p>
+                  </div>
+                )}
+                {item.name && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Name:</span>
+                    <p className="text-gray-900">{item.name}</p>
+                  </div>
+                )}
+                {item.taskTitle && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Task Title:</span>
+                    <p className="text-gray-900">{item.taskTitle}</p>
+                  </div>
+                )}
+                {item.project && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Project:</span>
+                    <p className="text-gray-900">{item.project}</p>
+                  </div>
+                )}
+                {item.taskGroup && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Task Group:</span>
+                    <p className="text-gray-900">{item.taskGroup}</p>
+                  </div>
+                )}
+                {item.quantity && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Quantity:</span>
+                    <p className="text-gray-900">{item.quantity}</p>
+                  </div>
+                )}
+                {item.vendor && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Vendor:</span>
+                    <p className="text-gray-900">{item.vendor}</p>
+                  </div>
+                )}
+                {item.contactName && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Contact:</span>
+                    <p className="text-gray-900">{item.contactName}</p>
+                  </div>
+                )}
+                {item.phoneNumber && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Phone:</span>
+                    <p className="text-gray-900">{item.phoneNumber}</p>
+                  </div>
+                )}
+                {item.email && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Email:</span>
+                    <p className="text-gray-900">{item.email}</p>
+                  </div>
+                )}
+                {item.poNumber && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">PO #:</span>
+                    <p className="text-gray-900">{item.poNumber}</p>
+                  </div>
+                )}
+                {item.assignedFrom && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Assigned From:</span>
+                    <p className="text-gray-900">{item.assignedFrom}</p>
+                  </div>
+                )}
+                {item.assignedTo && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Assigned To:</span>
+                    <p className="text-gray-900">{item.assignedTo}</p>
+                  </div>
+                )}
+                {item.rfiNumber && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">RFI Number:</span>
+                    <p className="text-gray-900">{item.rfiNumber}</p>
+                  </div>
+                )}
+                {item.submittalNumber && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Submittal Number:</span>
+                    <p className="text-gray-900">{item.submittalNumber}</p>
+                  </div>
+                )}
+                {item.paragraphNumber && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Paragraph Number:</span>
+                    <p className="text-gray-900">{item.paragraphNumber}</p>
+                  </div>
+                )}
+
+                {/* Related Transactions */}
+                {relatedTransactions.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-medium text-gray-900 mb-3">
+                      Transaction History ({relatedTransactions.length})
+                    </h3>
+                    <div className="space-y-3 pl-4 border-l-2 border-blue-200">
+                      {relatedTransactions
+                        .sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated))
+                        .map(txn => (
+                          <div key={txn.id} className="text-sm">
+                            <div className="font-mono text-xs text-gray-500 mb-1">{txn.id}</div>
+                            <div className="text-gray-900 font-medium">{txn.statusUpdate}</div>
+                            {txn.notes && (
+                              <div className="text-gray-600 text-xs mt-1">{txn.notes}</div>
+                            )}
+                            <div className="text-xs text-gray-400 mt-1">
+                              {new Date(txn.dateCreated).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Transaction Details */}
+            {item.type === 'transaction' && (
+              <>
+                <div>
+                  <span className="font-medium text-gray-600 block mb-1">Status Update:</span>
+                  <p className="text-gray-900">{item.statusUpdate}</p>
+                </div>
+                {item.notes && (
+                  <div>
+                    <span className="font-medium text-gray-600 block mb-1">Notes:</span>
+                    <p className="text-gray-900">{item.notes}</p>
+                  </div>
+                )}
+                {linkedEntity && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded">
+                    <span className="font-medium text-gray-600 block mb-2">Linked Entity:</span>
+                    <div className="flex items-center gap-2">
+                      {getEntityIcon(linkedEntity.entityType)}
+                      <span className="font-mono text-sm text-blue-600">{linkedEntity.id}</span>
+                      <span className="text-sm text-gray-700">
+                        {linkedEntity.description || linkedEntity.title || linkedEntity.name || linkedEntity.taskTitle}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
