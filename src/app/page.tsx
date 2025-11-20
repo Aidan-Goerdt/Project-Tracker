@@ -201,7 +201,12 @@ const ProjectTracker = () => {
     const allItems = [
       ...entities.map(e => ({ ...e, type: 'entity' })),
       ...transactions.map(t => ({ ...t, type: 'transaction' }))
-    ].sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
+    ].sort((a, b) => {
+      // Sort by full timestamp (date + time)
+      const timeA = new Date(a.dateCreated).getTime();
+      const timeB = new Date(b.dateCreated).getTime();
+      return timeB - timeA; // Newest first
+    });
     
     return allItems.slice(0, 20);
   };
@@ -330,6 +335,34 @@ const ProjectTracker = () => {
 };
 
 const DashboardView = ({ recentItems, entities, transactions, getEntityIcon }) => {
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const getItemTitle = (item) => {
+    if (item.type === 'transaction') {
+      return item.statusUpdate || 'Status Update';
+    }
+    return item.title || item.taskTitle || item.name || item.description || 'Untitled';
+  };
+
+  const getItemSubtitle = (item) => {
+    if (item.type === 'transaction') {
+      return `Linked to: ${item.linkedEntityId}`;
+    }
+    if (item.entityType === 'Material') {
+      return `Qty: ${item.quantity || 'N/A'} | Vendor: ${item.vendor || 'N/A'}`;
+    }
+    if (item.entityType === 'Task') {
+      return `${item.assignedFrom || 'N/A'} → ${item.assignedTo || 'N/A'}`;
+    }
+    if (item.entityType === 'RFI') {
+      return `RFI #${item.rfiNumber || 'N/A'} | ${item.project || 'N/A'}`;
+    }
+    if (item.entityType === 'Submittal') {
+      return `Submittal #${item.submittalNumber || 'N/A'}`;
+    }
+    return item.project || '';
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -353,7 +386,11 @@ const DashboardView = ({ recentItems, entities, transactions, getEntityIcon }) =
             </div>
           ) : (
             recentItems.map((item, idx) => (
-              <div key={idx} className="p-4 hover:bg-gray-50">
+              <div 
+                key={idx} 
+                className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => setSelectedItem(item)}
+              >
                 <div className="flex items-start gap-3">
                   <div className="mt-1">
                     {item.type === 'entity' 
@@ -362,23 +399,50 @@ const DashboardView = ({ recentItems, entities, transactions, getEntityIcon }) =
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-medium text-blue-600">
+                    {/* Main Title - Large and prominent */}
+                    <div className="text-base font-semibold text-gray-900 mb-1">
+                      {getItemTitle(item)}
+                    </div>
+                    
+                    {/* Description/Subtitle - Entity only */}
+                    {item.type === 'entity' && item.description && (
+                      <div className="text-sm text-gray-700 mb-2">
+                        {item.description}
+                      </div>
+                    )}
+                    
+                    {/* Metadata row */}
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className="font-mono text-blue-600 font-medium">
                         {item.id}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(item.dateCreated).toLocaleDateString()}
+                      {item.type === 'entity' && (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
+                          {item.entityType}
+                        </span>
+                      )}
+                      {item.type === 'transaction' && (
+                        <>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                            Update
+                          </span>
+                          <span className="text-gray-500">→ {item.linkedEntityId}</span>
+                        </>
+                      )}
+                      <span className="text-gray-500">
+                        {new Date(item.dateCreated).toLocaleString()}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-900">
-                      {item.type === 'entity' 
-                        ? (item.description || item.title || item.name || item.taskTitle)
-                        : `Update: ${item.statusUpdate}`
-                      }
+                    
+                    {/* Additional info */}
+                    <div className="text-xs text-gray-600 mt-1">
+                      {getItemSubtitle(item)}
                     </div>
-                    {item.type === 'transaction' && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Linked to: {item.linkedEntityId}
+                    
+                    {/* Notes */}
+                    {item.notes && (
+                      <div className="text-xs text-gray-500 mt-2 italic border-l-2 border-gray-300 pl-2">
+                        {item.notes}
                       </div>
                     )}
                   </div>
